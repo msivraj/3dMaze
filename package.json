@@ -1,0 +1,22 @@
+{
+  "name": "3dmaze",
+  "version": "1.0.0",
+  "description": "3d maze in three.js",
+  "main": "3dmaze.html",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/msivraj/3dMaze.git"
+  },
+  "author": "msivraj",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/msivraj/3dMaze/issues"
+  },
+  "homepage": "https://github.com/msivraj/3dMaze#readme",
+  "dependencies": {
+    "express": "^4.16.3"
+  }
+}
