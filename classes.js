@@ -31,7 +31,7 @@ class rectorsquareside{
     this.vert1=vert1;
     this.vert2=vert2;
     // Put distance formula here
-    this.base=Math.sqrt((vert2.x-vert1.x)**2 + (vert2.z-vert1.z)**2);//add 10 here to increase the bounds of bounding box
+    this.base=Math.sqrt((vert2.x-vert1.x)**2 + (vert2.z-vert1.z)**2)+100;//add 10 here to increase the bounds of bounding box
     this.halfz;
     this.halfx;
     if(vert1.x==vert2.x){

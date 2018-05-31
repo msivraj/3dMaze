@@ -1,9 +1,10 @@
 var camera, scene, renderer, controls,texture, mazeMesh;
 
-var meshs = [];
+// var meshs = [];
 var castle=[];
+var frontStairs=[];
 
-var raycaster=new THREE.Raycaster();
+var raycaster;
 
 // var group = new THREE.Group();
 
@@ -86,15 +87,18 @@ var velocity = new THREE.Vector3();
 var direction = new THREE.Vector3();
 
 function init() {
+  raycaster = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3( 0, - 1, 0 ), 0, 10 );
+  // raycaster=new THREE.Raycaster(new THREE.Vector3(),new THREE.Vector3());
+  console.log(raycaster);
   // PerspectiveCamera( fov : Number, aspect : Number, near : Number, far : Number )
   //FOV=how far you can see out your peripheral vision
   //aspect=how narrow or wide you fov is
   //near=nearest boundary you can see
   //far= farest boundary you can see
   camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 1000 );
-  // camera.position.y=700;
-  // camera.position.x=0;
-  // camera.position.x=0;
+  // camera.position.y=230;
+  // camera.position.x=17;
+  // camera.position.z=700;
 
   scene = new THREE.Scene();
   scene.background = new THREE.Color( 0x3d3d5c );
@@ -200,65 +204,14 @@ function init() {
   //         // console.log(geometry.boundingSphere)
 	// 				scene.add( mazecontainermesh );
 	// 			} );
-  
-  //THIS MAKES CASTLE LOOKING BUILDING IN THE MIDDLE OF THE WORLD
-  var mazeContainerTexture = new THREE.TextureLoader().load( "stoneWall.jpg" );
-  mazeContainerTexture.wrapS = mazeContainerTexture.wrapT = THREE.RepeatWrapping;
-  mazeContainerTexture.repeat.set( 3, 3 );
-  var mazeContainerMaterial = new THREE.MeshPhongMaterial( { map:mazeContainerTexture } );
-  mazeContainerMaterial.side = THREE.DoubleSide;
-  
-  // var frontRect = new THREE.BoxGeometry( 250, 600, 250 );
-  // frontRect.translate(0,0,350);
-  // var frontRectMesh=new THREE.Mesh(frontRect,mazeContainerMaterial);
-  // frontRectMesh.scale.set(1.5,1.5,1.5);
-  // makeStatic3dCubeorRect(frontRectMesh);
-  // 
-  // var rearRect= new THREE.BoxGeometry( 250, 1000, 250 );
-  // var rearRectMesh=new THREE.Mesh(rearRect,mazeContainerMaterial);
-  // rearRectMesh.scale.set(1.5,1.5,1.5);
-  // makeStatic3dCubeorRect(rearRectMesh);
-
-  // var sideRect2=new THREE.BoxGeometry( 250, 800, 250 );
-  // sideRect2.rotateY(Math.PI/4);
-  // sideRect2.translate(200,0,175);
-  // var sideRect2Mesh=new THREE.Mesh(sideRect2,mazeContainerMaterial);
-  // sideRect2Mesh.scale.set(1.5,1.5,1.5);
-  // makeStatic3dCubeorRect(sideRect2Mesh);
-  
-
-  var sideRect1=new THREE.BoxGeometry( 250, 800, 250 );
-  sideRect1.rotateY((Math.PI/4));
-  sideRect1.translate(-200,0,175);
-  var sideRect1Mesh=new THREE.Mesh(sideRect1,mazeContainerMaterial); 
-  sideRect1Mesh.scale.set(1.5,1.5,1.5); 
-  makeStatic3dCubeorRect(sideRect1Mesh);
-  
-  // var center=sideRect1.boundingBox.getCenter(new THREE.Vector3());
-  // console.log(sideRect1Mesh.localToWorld(center));
-
-  meshs.push(sideRect1Mesh);
 
   // meshs.push(frontRectMesh,rearRectMesh,sideRect1Mesh,sideRect2Mesh);
   
   // raycaster = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3( 0, - 1, 0 ), 0, 10 );
   
-  // THIS MAKES THE GROUND
-
-  var groundgeometry = new THREE.PlaneGeometry( 5000, 5000, 99, 99 );
-    groundgeometry.rotateX( - Math.PI / 2 );
   
-    // for ( var i = 0, l = geometry.vertices.length; i < l; i ++ ) {
-    // 
-    //   geometry.vertices[ i ].y = 200 * Math.sin( i / 2 );
-    // 
-    // }
-    var texture = new THREE.TextureLoader().load( "sand1.jpg" );
-    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set( 50, 50 );
-    material = new THREE.MeshBasicMaterial( {map: texture} );
-    groundmesh = new THREE.Mesh( groundgeometry, material );
-    meshs.push(groundmesh);
+  makeCastle();
+  makeGround();
 
     
     //THIS MAKES THE DOOR MESH
@@ -270,7 +223,8 @@ function init() {
     // var mazeEnterancematerial = new THREE.MeshLambertMaterial( {transparent: true,map: mazeEnterancetexture} );
     var mazeEnteranceMesh= new THREE.Mesh( mazeEnterancegeometry, mazeEnterancematerial );
     mazeEnteranceMesh.position.set(-48,0,937)
-    meshs.push(mazeEnteranceMesh);
+    scene.add(mazeEnteranceMesh);
+    // meshs.push(mazeEnteranceMesh);
 
     
 
@@ -331,7 +285,7 @@ function init() {
   // var axesHelper = new THREE.AxesHelper(100);
   // scene.add( axesHelper );
   console.log(castle);
-  addObjstoScene();
+  // addObjstoScene();
   
 
   //
@@ -340,11 +294,549 @@ function init() {
 
 }
 
-function addObjstoScene(){
-  for(i=0;i<meshs.length;i++){
-    scene.add(meshs[i]);
-  }
+function assignUVs(geometry) {
+
+    geometry.faceVertexUvs[0] = [];
+
+    geometry.faces.forEach(function(face) {
+
+        var components = ['x', 'y', 'z'].sort(function(a, b) {
+            return Math.abs(face.normal[a]) > Math.abs(face.normal[b]);
+        });
+
+        var v1 = geometry.vertices[face.a];
+        var v2 = geometry.vertices[face.b];
+        var v3 = geometry.vertices[face.c];
+
+        geometry.faceVertexUvs[0].push([
+            new THREE.Vector2(v1[components[0]], v1[components[1]]),
+            new THREE.Vector2(v2[components[0]], v2[components[1]]),
+            new THREE.Vector2(v3[components[0]], v3[components[1]])
+        ]);
+
+    });
+
+    geometry.uvsNeedUpdate = true;
 }
+
+
+function makeGround(){
+  // THIS MAKES THE GROUND
+  var groundgeometry = new THREE.PlaneGeometry( 5000, 5000, 99, 99 );
+    groundgeometry.rotateX( - Math.PI / 2 );
+    // for ( var i = 0, l = geometry.vertices.length; i < l; i ++ ) {
+    // 
+    //   geometry.vertices[ i ].y = 200 * Math.sin( i / 2 );
+    // 
+    // }
+    var texture = new THREE.TextureLoader().load( "sand1.jpg" );
+    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat.set( 50, 50 );
+    material = new THREE.MeshBasicMaterial( {map: texture} );
+    groundmesh = new THREE.Mesh( groundgeometry, material );
+    scene.add(groundmesh);
+    // meshs.push(groundmesh);
+}
+
+function makeFrontRightSideStairs(material,startx,starty,startz){
+  for(i=0;i<22;i++){
+    var box=new THREE.BoxGeometry(40,5,6);
+    box.rotateY(Math.PI/4);
+    box.translate(startx,starty,startz);
+    var mesh=new THREE.Mesh(box,material);
+    scene.add(mesh);
+    startx+=4.2426;
+    starty+=5;
+    startz+=4.2426;
+    frontStairs.push(mesh);
+  }
+  startx=187.5-20.01;
+  startz+=10;
+  for(i=0;i<7;i++){
+    var box=new THREE.BoxGeometry(40,5,6);
+    box.translate(startx,starty,startz);
+    var mesh=new THREE.Mesh(box,material);
+    scene.add(mesh);
+    starty+=5;
+    startz+=6;
+    frontStairs.push(mesh);
+  }
+  console.log(startx,starty,startz);
+}
+
+function makeFrontLeftSideStairs(material,startx,starty,startz){
+  for(i=0;i<22;i++){
+    var box=new THREE.BoxGeometry(40,5,6);
+    box.rotateY(-Math.PI/4);
+    box.translate(startx,starty,startz);
+    var mesh=new THREE.Mesh(box,material);
+    scene.add(mesh);
+    startx-=4.2426;
+    starty+=5;
+    startz+=4.2426;
+    frontStairs.push(mesh);
+  }
+  startx=-187.5+20.01;
+  startz+=10;
+  for(i=0;i<7;i++){
+    var box=new THREE.BoxGeometry(40,5,6);
+    box.translate(startx,starty,startz);
+    var mesh=new THREE.Mesh(box,material);
+    scene.add(mesh);
+    starty+=5;
+    startz+=6;
+    frontStairs.push(mesh);
+  }
+  console.log(startx,starty,startz);
+}
+
+function makeCastle(){
+  //THIS MAKES CASTLE LOOKING BUILDING IN THE MIDDLE OF THE WORLD
+  var castleFloorTexture=new THREE.TextureLoader().load("marblefloor.jpg");
+  castleFloorTexture.wrapS = castleFloorTexture.wrapT = THREE.RepeatWrapping;
+  castleFloorTexture.repeat.set( .03,.03 );
+  var castleFloorMaterial = new THREE.MeshPhongMaterial( {map:castleFloorTexture} );
+  castleFloorMaterial.side = THREE.DoubleSide;
+  
+  var castleFloorGeo=new THREE.Geometry();
+  castleFloorGeo.vertices.push(
+    new THREE.Vector3(-187.5,1,72.335), //1
+    new THREE.Vector3(-187.5,1,-187.5),//2
+    new THREE.Vector3(0,1,250),//3
+    // new THREE.Vector3(-9.835,1,250),//3
+    new THREE.Vector3(187.5,1,-187.5),//4
+    new THREE.Vector3(187.5,1,72.335),//5
+    new THREE.Vector3(275,1,-15.165),//6
+    new THREE.Vector3(540.165,1,250),//7
+    new THREE.Vector3(275,1,515.165),//8
+    new THREE.Vector3(187.5,1,427.665),//9
+    new THREE.Vector3(187.5,1,687.5),//10
+    new THREE.Vector3(-187.5,1,687.5),//11
+    new THREE.Vector3(-187.5,1,427.665),//12
+    new THREE.Vector3(-275,1,515.165),//13
+    new THREE.Vector3(-540.165,1,250),//14
+    new THREE.Vector3(-275,1,-15.165),//15
+    // new THREE.Vector3(9.835,1,250)//16
+  );
+  castleFloorGeo.faces.push(
+    new THREE.Face3(0,1,2),
+    new THREE.Face3(1,2,3),
+    new THREE.Face3(3,2,4),
+    new THREE.Face3(4,2,6),
+    new THREE.Face3(6,4,5),
+    new THREE.Face3(6,2,8),
+    new THREE.Face3(8,6,7),
+    new THREE.Face3(8,2,9),
+    new THREE.Face3(9,2,10),
+    new THREE.Face3(10,2,11),
+    new THREE.Face3(2,11,13),
+    new THREE.Face3(13,12,11),
+    new THREE.Face3(13,2,0),
+    new THREE.Face3(13,0,14)
+    // new THREE.Face3(8,9,12),
+    // new THREE.Face3(9,13,12),
+    // new THREE.Face3(12,13,3),
+    // new THREE.Face3(3,13,17),
+    // new THREE.Face3(17,16,3),
+    // new THREE.Face3(16,17,7),
+  );
+  castleFloorGeo.computeFaceNormals();
+  castleFloorGeo.computeVertexNormals();
+  assignUVs(castleFloorGeo);
+  var castleFloorMesh=new THREE.Mesh(castleFloorGeo,castleFloorMaterial);
+  scene.add(castleFloorMesh);
+  
+  var mazeContainerTexture = new THREE.TextureLoader().load( "stoneWall.jpg" );
+  mazeContainerTexture.wrapS = mazeContainerTexture.wrapT = THREE.RepeatWrapping;
+  // mazeContainerTexture.wrapS = mazeContainerTexture.wrapT = THREE.MirroredRepeatWrapping;
+  mazeContainerTexture.repeat.set( .005,.005 );
+  var mazeContainerMaterial = new THREE.MeshPhongMaterial( {map:mazeContainerTexture} );
+  // var mazeContainerMaterial = new THREE.MeshPhongMaterial( { color: 0x222222 , wireframe: true} );
+  mazeContainerMaterial.side = THREE.DoubleSide;
+  
+  var frontRect = new THREE.BoxGeometry( 375, 900, 375 );
+  frontRect.translate(0,0,500);
+  var frontRectMesh=new THREE.Mesh(frontRect,mazeContainerMaterial);
+  frontRectMesh.geometry.computeFaceNormals();
+  frontRectMesh.geometry.computeVertexNormals();
+  assignUVs(frontRectMesh.geometry);
+  frontRectMesh.updateMatrix(); 
+  frontRectMesh.geometry.applyMatrix( frontRectMesh.matrix );
+  frontRectMesh.matrix.identity();
+  makeStatic3dCubeorRect(frontRectMesh);
+  scene.add(frontRectMesh);
+  // meshs.push(frontRectMesh);
+  
+  var landingFrontStairsGeo=new THREE.Geometry();
+  landingFrontStairsGeo.vertices.push(
+    new THREE.Vector3(-72.335,50,312.5),
+    new THREE.Vector3(72.335,50,312.5),
+    new THREE.Vector3(-72.335,50,355.5),
+    new THREE.Vector3(72.335,50,355.5)
+  );
+  landingFrontStairsGeo.faces.push(
+    new THREE.Face3(0,1,2),
+    new THREE.Face3(2,3,1)
+  );
+  var landingFrontStairsMaterial=new THREE.MeshBasicMaterial();
+  landingFrontStairsMaterial.side=THREE.DoubleSide;
+  var landingFrontStairsMesh=new THREE.Mesh(landingFrontStairsGeo,landingFrontStairsMaterial);
+  frontStairs.push(landingFrontStairsMesh);
+  scene.add(landingFrontStairsMesh);
+  
+  var frontStairsTexture = new THREE.TextureLoader().load( "stoneWall.jpg" );
+  frontStairsTexture.wrapS = frontStairsTexture.wrapT = THREE.RepeatWrapping;
+  frontStairsTexture.repeat.set( .005,.005 );
+  // var frontStairsMaterial = new THREE.MeshPhongMaterial( {map:frontStairsTexture} );
+  var frontStairsMaterial = new THREE.MeshPhongMaterial( {color:0xff0000} );
+  frontStairsMaterial.side = THREE.DoubleSide;
+  
+  //stairs have rise of 5 on y and a run of 6 on z
+  var f1Stair=new THREE.BoxGeometry(100,5,6);
+  f1Stair.translate(0,2.5,412.5);
+  var f1StairMesh=new THREE.Mesh(f1Stair,frontStairsMaterial);
+  frontStairs.push(f1StairMesh);
+  scene.add(f1StairMesh);
+  
+  var f2Stair=new THREE.BoxGeometry(90,5,6);
+  f2Stair.translate(0,7.5,406.5);
+  var f2StairMesh=new THREE.Mesh(f2Stair,frontStairsMaterial);
+  frontStairs.push(f2StairMesh);
+  scene.add(f2StairMesh);
+  
+  var f3Stair=new THREE.BoxGeometry(82,5,6);
+  f3Stair.translate(0,12.5,400.5);
+  var f3StairMesh=new THREE.Mesh(f3Stair,frontStairsMaterial);
+  frontStairs.push(f3StairMesh);
+  scene.add(f3StairMesh);
+  
+  var f4Stair=new THREE.BoxGeometry(76,5,6);
+  f4Stair.translate(0,17.5,394.5);
+  var f4StairMesh=new THREE.Mesh(f4Stair,frontStairsMaterial);
+  frontStairs.push(f4StairMesh);
+  scene.add(f4StairMesh);
+  
+  var f5Stair=new THREE.BoxGeometry(72,5,6);
+  f5Stair.translate(0,22.5,388.5);
+  var f5StairMesh=new THREE.Mesh(f5Stair,frontStairsMaterial);
+  frontStairs.push(f5StairMesh);
+  scene.add(f5StairMesh);
+  
+  var f6Stair=new THREE.BoxGeometry(70,5,6);
+  f6Stair.translate(0,27.5,382.5);
+  var f6StairMesh=new THREE.Mesh(f6Stair,frontStairsMaterial);
+  frontStairs.push(f6StairMesh);
+  scene.add(f6StairMesh);
+  
+  var f7Stair=new THREE.BoxGeometry(70,5,6);
+  f7Stair.translate(0,32.5,376.5);
+  var f7StairMesh=new THREE.Mesh(f7Stair,frontStairsMaterial);
+  frontStairs.push(f7StairMesh);
+  scene.add(f7StairMesh);
+  
+  var f8Stair=new THREE.BoxGeometry(70,5,6);
+  f8Stair.translate(0,37.5,370.5);
+  var f8StairMesh=new THREE.Mesh(f8Stair,frontStairsMaterial);
+  frontStairs.push(f8StairMesh);
+  scene.add(f8StairMesh);
+  
+  var f9Stair=new THREE.BoxGeometry(70,5,6);
+  f9Stair.translate(0,42.5,364.5);
+  var f9StairMesh=new THREE.Mesh(f9Stair,frontStairsMaterial);
+  frontStairs.push(f9StairMesh);
+  scene.add(f9StairMesh);
+  
+  var f10Stair=new THREE.BoxGeometry(70,5,6);
+  f10Stair.translate(0,47.5,358.5);
+  var f10StairMesh=new THREE.Mesh(f10Stair,frontStairsMaterial);
+  frontStairs.push(f10StairMesh);
+  scene.add(f10StairMesh);
+  
+  //front right side and left side stairs
+  makeFrontRightSideStairs(frontStairsMaterial,78.185,55,346.65);
+  makeFrontLeftSideStairs(frontStairsMaterial,-78.185,55,346.65);
+    
+  var frontUpstairsGeo = new THREE.Geometry();
+  // console.log(ageometry);
+  frontUpstairsGeo.vertices.push(
+    //vertices of square
+  	new THREE.Vector3(-187.5,200,687.5),//0
+  	new THREE.Vector3(187.5,200,312.5),//1
+  	new THREE.Vector3(-187.5,200,312.5),//2
+    new THREE.Vector3(187.5,200,687.5),//3
+    //Line one
+    new THREE.Vector3(-187.5,200,562.5),//4
+    new THREE.Vector3(-63,200,521),//5
+    new THREE.Vector3(63,200,479),//6
+    new THREE.Vector3(187.5,200,437.5),//7
+    //Line Two
+    new THREE.Vector3(-62.5,200,687.5),//8
+    new THREE.Vector3(-21,200,563),//9
+    new THREE.Vector3(21,200,437),//10
+    new THREE.Vector3(62.5,200,312.5),//11
+    //Line Three
+    new THREE.Vector3(62.5,200,687.5),//12
+    new THREE.Vector3(21,200,563),//13
+    new THREE.Vector3(-21,200,437),//14
+    new THREE.Vector3(-62.5,200,312.5), //15 
+    //Line Four
+    new THREE.Vector3(187.5,200,562.5),//16
+    new THREE.Vector3(63,200,521),//17
+    new THREE.Vector3(-63,200,479),//18
+    // new THREE.Vector3(-62.5,100,312.5)//19
+    new THREE.Vector3(-187.5,200,437.5)//19
+  );
+  
+  frontUpstairsGeo.faces.push(
+    new THREE.Face3(9,5,0),
+    new THREE.Face3(8,0,9),
+    new THREE.Face3(8,9,12),
+    new THREE.Face3(9,13,12),
+    new THREE.Face3(12,13,3),
+    new THREE.Face3(3,13,17),
+    new THREE.Face3(17,16,3),
+    new THREE.Face3(16,17,7),
+    new THREE.Face3(7,17,6),
+    new THREE.Face3(7,6,1),
+    new THREE.Face3(1,6,10),
+    new THREE.Face3(10,1,11),
+    new THREE.Face3(11,10,14),
+    new THREE.Face3(14,11,15),
+    new THREE.Face3(15,14,2),
+    new THREE.Face3(2,18,14),
+    new THREE.Face3(18,2,19),
+    new THREE.Face3(19,18,5),
+    new THREE.Face3(5,19,4),
+    new THREE.Face3(5,0,4)
+
+);
+  frontUpstairsGeo.computeFaceNormals();
+  frontUpstairsGeo.computeVertexNormals();
+  assignUVs(frontUpstairsGeo);
+
+  var frontUpstairsTexture = new THREE.TextureLoader().load( "wood3.jpg" );
+  frontUpstairsTexture.wrapS = frontUpstairsTexture.wrapT = THREE.MirroredRepeatWrapping;
+  frontUpstairsTexture.repeat.set(0.03, 0.03);
+  var frontUpstairsMaterial = new THREE.MeshBasicMaterial( { map: frontUpstairsTexture } );
+  frontUpstairsMaterial.side=THREE.DoubleSide;
+  var frontUpstairsMesh=new THREE.Mesh(frontUpstairsGeo,frontUpstairsMaterial);
+  scene.add(frontUpstairsMesh); 
+  
+  var rearRect= new THREE.BoxGeometry( 375, 1500, 375 );
+  rearRect.vertices.push(
+    //star2
+    new THREE.Vector3(-104.6226,750,-39.1312), //8
+    new THREE.Vector3(-25.429,750,-39.1312),//9
+    new THREE.Vector3(0,750,-114.1312),//10
+    new THREE.Vector3(25.429,750,-39.1312),//11
+    new THREE.Vector3(104.6226,750,-39.1312),//12
+    new THREE.Vector3(41.145,750,9.2376),//13
+    new THREE.Vector3(64.6557,750,84.8598),//14
+    new THREE.Vector3(0,750,39.1312),//15
+    new THREE.Vector3(-64.6557,750,84.8598),//16
+    new THREE.Vector3(-41.145,750,9.2376),//17
+    new THREE.Vector3(187.5,750,9.2376),//18
+    new THREE.Vector3(0,750,187.5),//19
+    new THREE.Vector3(-187.5,750,9.2376)//20
+  );
+  rearRect.faces=[]
+  rearRect.faces.push(
+    new THREE.Face3(0,2,1),
+    new THREE.Face3(2,3,1),
+    new THREE.Face3(4,6,5),
+    new THREE.Face3(6,7,5),
+    // new THREE.Face3(4,5,1),
+    // new THREE.Face3(5,0,1),
+    new THREE.Face3(7,6,2),
+    new THREE.Face3(6,3,2),
+    new THREE.Face3(5,7,0),
+    new THREE.Face3(7,2,0),
+    new THREE.Face3(1,3,4),
+    new THREE.Face3(3,6,4),
+    //star2
+    new THREE.Face3(4,8,9),
+    new THREE.Face3(4,9,10),
+    new THREE.Face3(4,10,1),
+    new THREE.Face3(10,1,11),
+    new THREE.Face3(11,1,12),
+    new THREE.Face3(1,12,18),
+    new THREE.Face3(13,12,18),
+    new THREE.Face3(13,18,14),
+    new THREE.Face3(18,14,0),//prob ?
+    new THREE.Face3(14,19,0),
+    new THREE.Face3(14,15,19),
+    new THREE.Face3(15,16,19),
+    new THREE.Face3(16,19,5),
+    new THREE.Face3(16,5,20),
+    new THREE.Face3(16,17,20),
+    new THREE.Face3(8,17,20),
+    new THREE.Face3(8,4,20)
+  );
+  
+  var rearRectMesh=new THREE.Mesh(rearRect,mazeContainerMaterial);
+  rearRectMesh.geometry.computeFaceNormals();
+  rearRectMesh.geometry.computeVertexNormals();
+  assignUVs(rearRectMesh.geometry);
+  rearRectMesh.updateMatrix(); 
+  rearRectMesh.geometry.applyMatrix( rearRectMesh.matrix );
+  rearRectMesh.matrix.identity();
+  makeStatic3dCubeorRect(rearRectMesh);
+  scene.add(rearRectMesh);
+  // meshs.push(rearRectMesh);
+  
+  var sideRect2=new THREE.BoxGeometry( 375, 1200, 375 );
+  sideRect2.rotateY(Math.PI/4);
+  sideRect2.translate(275,0,250);
+  
+  sideRect2.vertices.push(
+    //sideRect2.1
+    new THREE.Vector3(372.227,325,417.938),//8
+    new THREE.Vector3(442.938,325,347.227),//9
+    new THREE.Vector3(372.227,460,417.938),//10
+    new THREE.Vector3(442.938,460,347.227),//11
+    new THREE.Vector3(395.774,475,394.391),//12
+    new THREE.Vector3(419.391,475,370.774), //13
+    //sideRect2.2
+    new THREE.Vector3(372.227,120,82.062),// 14
+    new THREE.Vector3(442.938,120,152.773),// 15
+    new THREE.Vector3(395.775,100,105.609),// 16
+    new THREE.Vector3(419.391,100,129.226),// 17
+    new THREE.Vector3(372.227,230,82.062),// 18
+    new THREE.Vector3(442.938,230,152.773),// 19
+    new THREE.Vector3(395.775,250,105.609),// 20
+    new THREE.Vector3(419.391,250,129.226)// 21
+  );
+
+  sideRect2.faces=[];
+  sideRect2.faces.push(
+  new THREE.Face3(4,6,5),
+  new THREE.Face3(6,7,5),
+  new THREE.Face3(4,5,1),
+  new THREE.Face3(5,0,1),
+  new THREE.Face3(7,6,2),
+  new THREE.Face3(6,3,2),
+  new THREE.Face3(1,3,4),
+  new THREE.Face3(3,6,4),
+  //side2.1
+  new THREE.Face3(5,10,12),
+  new THREE.Face3(5,12,13),
+  new THREE.Face3(5,13,0),
+  new THREE.Face3(0,13,11),
+  new THREE.Face3(0,11,2),
+  new THREE.Face3(2,11,9),
+  new THREE.Face3(2,9,7),
+  new THREE.Face3(7,9,8),
+  new THREE.Face3(8,7,10),
+  new THREE.Face3(10,7,5),
+  //side2.2
+  new THREE.Face3(14,1,18),
+  new THREE.Face3(18,1,20),
+  new THREE.Face3(20,1,21),
+  new THREE.Face3(21,1,0),
+  new THREE.Face3(21,0,19),
+  new THREE.Face3(19,0,2),
+  new THREE.Face3(19,15,2),
+  new THREE.Face3(15,17,2),
+  new THREE.Face3(17,3,2),
+  new THREE.Face3(16,17,3),
+  new THREE.Face3(3,14,16),
+  new THREE.Face3(14,1,3)
+);
+  
+  var sideRect2Mesh=new THREE.Mesh(sideRect2,mazeContainerMaterial);
+  sideRect2Mesh.geometry.computeFaceNormals();
+  sideRect2Mesh.geometry.computeVertexNormals();
+  assignUVs(sideRect2Mesh.geometry);
+  sideRect2Mesh.updateMatrix(); 
+  sideRect2Mesh.geometry.applyMatrix( sideRect2Mesh.matrix );
+  sideRect2Mesh.matrix.identity();
+  makeStatic3dCubeorRect(sideRect2Mesh);
+  console.log("siderect2",sideRect2);
+  scene.add(sideRect2Mesh);
+  // meshs.push(sideRect2Mesh);
+  
+
+  var sideRect1=new THREE.BoxGeometry( 375, 1200, 375 );
+  sideRect1.rotateY((Math.PI/4));
+  sideRect1.translate(-275,0,250);
+  // var sideRect1Floor=createCastleFloor(sideRect1.vertices[0],sideRect1.vertices[1],sideRect1.vertices[4],sideRect1.vertices[5])
+  
+  sideRect1.vertices.push(
+    // sideRect1.1
+    new THREE.Vector3(-372.227,325,417.938),//8
+    new THREE.Vector3(-442.938,325,347.227),//9
+    new THREE.Vector3(-372.227,460,417.938),//10
+    new THREE.Vector3(-442.938,460,347.227),//11
+    new THREE.Vector3(-395.774,475,394.391),//12
+    new THREE.Vector3(-419.391,475,370.774), //13
+    //sideRect2.2
+    new THREE.Vector3(-372.227,120,82.062),// 14
+    new THREE.Vector3(-442.938,120,152.773),// 15
+    new THREE.Vector3(-395.775,100,105.609),// 16
+    new THREE.Vector3(-419.391,100,129.226),// 17
+    new THREE.Vector3(-372.227,230,82.062),// 18
+    new THREE.Vector3(-442.938,230,152.773),// 19
+    new THREE.Vector3(-395.775,250,105.609),// 20
+    new THREE.Vector3(-419.391,250,129.226)// 21
+  );
+
+  sideRect1.faces=[];
+  sideRect1.faces.push(
+    new THREE.Face3(0,2,1),
+    new THREE.Face3(2,3,1),
+    // new THREE.Face3(4,6,5),
+    // new THREE.Face3(6,7,5),
+    new THREE.Face3(4,5,1),
+    new THREE.Face3(5,0,1),
+    new THREE.Face3(7,6,2),
+    new THREE.Face3(6,3,2),
+    new THREE.Face3(5,7,0),
+    new THREE.Face3(7,2,0),
+    // new THREE.Face3(1,3,4),
+    // new THREE.Face3(3,6,4),
+    //side1.1
+    new THREE.Face3(5,10,12),
+    new THREE.Face3(5,12,4),
+    new THREE.Face3(4,13,12),
+    new THREE.Face3(4,13,11),
+    new THREE.Face3(4,11,9),
+    new THREE.Face3(4,9,6),
+    new THREE.Face3(8,9,6),
+    new THREE.Face3(7,6,8),
+    new THREE.Face3(8,7,5),
+    new THREE.Face3(5,8,10),
+    //side 1.2
+    new THREE.Face3(14,1,18),
+    new THREE.Face3(18,1,20),
+    new THREE.Face3(20,1,21),
+    new THREE.Face3(21,1,4),
+    new THREE.Face3(21,4,19),
+    new THREE.Face3(19,4,6),
+    new THREE.Face3(19,15,6),
+    new THREE.Face3(15,17,6),
+    new THREE.Face3(17,3,6),
+    new THREE.Face3(16,17,3),
+    new THREE.Face3(3,14,16),
+    new THREE.Face3(14,1,3)
+  );
+  
+  var sideRect1Mesh=new THREE.Mesh(sideRect1,mazeContainerMaterial);
+  sideRect1Mesh.geometry.computeFaceNormals();
+  sideRect1Mesh.geometry.computeVertexNormals();
+  assignUVs(sideRect1Mesh.geometry);
+  sideRect1Mesh.updateMatrix(); 
+  sideRect1Mesh.geometry.applyMatrix( sideRect1Mesh.matrix );
+  sideRect1Mesh.matrix.identity();
+  makeStatic3dCubeorRect(sideRect1Mesh);
+  scene.add(sideRect1Mesh);
+  // meshs.push(sideRect1Mesh);
+}
+
+// function addObjstoScene(){
+//   for(i=0;i<meshs.length;i++){
+//     scene.add(meshs[i]);
+//   }
+// }
 
 function makeStatic3dCubeorRect(mesh){
   // mesh.geometry.computeBoundingBox();
@@ -357,30 +849,7 @@ function makeStatic3dCubeorRect(mesh){
   verts=[vector1,vector2,vector3,vector4];
   sides=makeSides(verts);
   var object=new Static3dCubeorRect(mesh,sides);
-  // if(rotationX!=0 || rotationY!=0 || rotationZ!=0){
-  //   object.isRotated=true;
-  //   object.Xrotation=rotationX;
-  //   object.Yrotation=rotationY;
-  //   object.Zrotation=rotationZ;
-  // }
-  // object.vert1=vector1;
-  // object.vert2=vector2;
-  // object.vert3=vector3;
-  // object.vert4=vector4;
-  // object.x1Boundary=vector1.x;
-  // object.x2Boundary=vector2.x;
-  // object.z1Boundary=0;
-  // object.z2Boundary=0;
-  // object.x3Boundary=0;
-  // object.x4Boundary=0;
-  // object.z3Boundary=0;
-  // object.z4Boundary=0;
-  
-  // boundaries=findOrigVertices(object);
-  // object.xBoundary=
-  // object.zBoundary=
   castle.push(object);
-  // console.log(castle);
 }
 
 function makeSides(vertsIn){
@@ -402,7 +871,7 @@ function makeSides(vertsIn){
   return sides;
 }
 //FINISH WRITING THIS METHOD AND MAKE SURE THAT MAKESIDES METHOD WORKS
-function isInsideBuilding(playerPos,count){
+function isInsideBuilding(playerPos){
   var triangleArea=0;
   var isInside=false;
   // playerPos=controls.getObject().position;
@@ -423,10 +892,10 @@ function isInsideBuilding(playerPos,count){
       var area=.5*(playerPos.x*(side.vert1.z-side.vert2.z) + side.vert1.x*(side.vert2.z-playerPos.z) + side.vert2.x*(playerPos.z-side.vert1.z));      
       triangleArea=triangleArea+Math.abs(area);
       
-      // if (count%200==0){
-      //   console.log("Playerpos",playerPos,"area: ",area,"vert1: ",side.vert1,"vert2: ",side.vert2,"\n");
-      // }
-    }
+    //   if (count%50==0){
+    //     console.log("Playerpos",playerPos)//,"vert1: ",side.vert1,"vert2: ",side.vert2,"\n");
+    //   }
+     }
     // if (count%50==0){
     //   console.log("Tirarea: ",triangleArea,"Squarearea: ",castle[i].area,"playerPos: ", playerPos, castle[i].mesh, "i: ",i);
     //   // console.log(playerPos);
@@ -438,15 +907,21 @@ function isInsideBuilding(playerPos,count){
     //   }
     // }
     
-    if(triangleArea==castle[i].area){
-      console.log("you are inside the box");
-      break;
-    }else{
-      console.log("you are outside the box");
-    }
+    if(Math.round(triangleArea)==castle[i].area){
+      // console.log("you are inside the box",triangleArea);
+      // break;
+      isInside=true;
+      return isInside;
+     }
+     //else{
+    //   // console.log("you are outside the box",triangleArea);
+    // }
   }
 }
 
+function ascendStairs(stairs){
+  
+}
 
 function onWindowResize() {
 
@@ -456,6 +931,8 @@ function onWindowResize() {
   renderer.setSize( window.innerWidth, window.innerHeight );
 
 }
+
+
 var count=0;
 function animate() {
   
@@ -465,12 +942,13 @@ function animate() {
   if ( controlsEnabled === true ) {
     playerPos=controls.getObject().position;
     // console.log(playerPos);
-  //   if (count%25==0){
-  // console.log(controls.getObject().position)
-  // // console.log("camerarotation",camera.rotation);
-  // // console.log("controlsrotation",controls.getObject().rotation);
-  // // console.log
-  //   }
+    if (count%30==0){
+  console.log(playerPos);
+  console.log("before",controls.getObject().position);
+  // console.log("camerarotation",camera.rotation);
+  // console.log("controlsrotation",controls.getObject().rotation);
+  // console.log
+    }
   
     // raycaster.ray.origin.copy( controls.getObject().position );
     // raycaster.ray.origin.y -= 10;
@@ -480,7 +958,33 @@ function animate() {
     // // console.log(raycaster.intersectObjects( objects ));
     // var onObject = intersections.length > 0;
     // console.log(onObject)
-    isInsideBuilding(playerPos,count);
+    var isInside=isInsideBuilding(playerPos);
+    // console.log(isInside);
+    if(isInside){
+      // if(-50<playerPos.x && playerPos.x<50 && 408<playerPos.z && playerPos.z<416){
+        // ascendStairs(frontStairs);
+        //  var vector = controls.target.clone().subSelf( controls.object.position ).normalize();
+        // var vector=playerPos.normalize()
+        // var raycaster = new THREE.Raycaster( playerPos, vector );
+        // var intersects = raycaster.intersectObjects(frontStairs[0]);
+        raycaster.ray.origin.copy(controls.getObject().position);
+        // raycaster.ray.direction.copy(playerPos.normalize());
+        raycaster.ray.origin.y -= 10;//it is minus ten because the y control position is set up ten console.log(controls.getObject());
+        var intersections = raycaster.intersectObjects(frontStairs);
+      
+        if(intersections.length > 0){
+          // console.log(intersections);
+          controls.getObject().position.y=intersections[0].point.y+12.5;
+          if (count%25==0){
+          console.log("inside",controls.getObject().position);
+        }
+        }
+        // console.log(intersections);
+    //  }
+    }
+    if (count%25==0){
+    console.log("after",controls.getObject().position);
+  }
     count++;
     var time = performance.now();
     var delta = ( time - prevTime ) / 1000;
