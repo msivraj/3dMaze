@@ -68,6 +68,8 @@ class Static3dCubeorRect{
     // this.x4Boundary=0;
     // this.z3Boundary=0;
     // this.z4Boundary=0;
+    this.whichOne=0;
+    this.stairsandfloors=[];
     this.sides=sides;
     // this.vert1=0;
     // this.vert2=0;
@@ -90,5 +92,19 @@ class Static3dCubeorRect{
   
 }
 
+
+class player{
+  constructor(){
+    this.playerPos=new THREE.Vector3();
+    //mesh
+    //material
+    //texture
+    //weapon
+    //abilities
+    
+    
+  }
+  
+}
 
 // class building

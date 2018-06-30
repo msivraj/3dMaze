@@ -1,12 +1,10 @@
-var camera, scene, renderer, controls,texture, mazeMesh;
+var camera, scene, renderer, controls,texture, mazeMesh; 
 
-// var meshs = [];
 var castle=[];
-var frontStairs=[];
+var thingToStandOn=[];
+var thingsToCollideWith=[];
 
 var raycaster;
-
-// var group = new THREE.Group();
 
 var blocker = document.getElementById( 'blocker' );
 var instructions = document.getElementById( 'instructions' );
@@ -80,15 +78,16 @@ var moveForward = false;
 var moveBackward = false;
 var moveLeft = false;
 var moveRight = false;
-var canJump = false;
+var canJump = true;
+var jumped=false;
 
 var prevTime = performance.now();
 var velocity = new THREE.Vector3();
 var direction = new THREE.Vector3();
 
 function init() {
-  raycaster = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3( 0, - 1, 0 ), 0, 10 );
-  // raycaster=new THREE.Raycaster(new THREE.Vector3(),new THREE.Vector3());
+  raycaster = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3( 0,-1,0 ), 0, 10 );//ORIGINAL 0, - 1, 0 /-1, -1,-1  
+  raycaster1=new THREE.Raycaster(new THREE.Vector3(),new THREE.Vector3(0,-1,0),0,10);
   console.log(raycaster);
   // PerspectiveCamera( fov : Number, aspect : Number, near : Number, far : Number )
   //FOV=how far you can see out your peripheral vision
@@ -110,8 +109,10 @@ function init() {
   scene.add( light );
 
   controls = new THREE.PointerLockControls( camera );
+  controls.getObject().position.y=25;
+  // controls.getObject().position.x=183;
   scene.add( controls.getObject() );
-
+  // controls.getObject().position.y=300;
   var onKeyDown = function ( event ) {
 
     switch ( event.keyCode ) {
@@ -136,8 +137,13 @@ function init() {
         break;
 
       case 32: // space
-        if ( canJump === true ) velocity.y += 350;
-        canJump = false;
+        if (canJump){
+          velocity.y = 350;
+          canJump = false;
+          // console.log("NEWJUMP");
+          // snapShotPlayerposY=controls.getObject().position.y;
+          // jumped=true;
+        }
         break;
 
     }
@@ -285,9 +291,9 @@ function init() {
   // var axesHelper = new THREE.AxesHelper(100);
   // scene.add( axesHelper );
   console.log(castle);
+  console.log(thingsToCollideWith);
   // addObjstoScene();
   
-
   //
 
   window.addEventListener( 'resize', onWindowResize, false );
@@ -334,6 +340,7 @@ function makeGround(){
     texture.repeat.set( 50, 50 );
     material = new THREE.MeshBasicMaterial( {map: texture} );
     groundmesh = new THREE.Mesh( groundgeometry, material );
+    thingToStandOn.push(groundmesh);
     scene.add(groundmesh);
     // meshs.push(groundmesh);
 }
@@ -348,7 +355,7 @@ function makeFrontRightSideStairs(material,startx,starty,startz){
     startx+=4.2426;
     starty+=5;
     startz+=4.2426;
-    frontStairs.push(mesh);
+    thingToStandOn.push(mesh);
   }
   startx=187.5-20.01;
   startz+=10;
@@ -359,7 +366,7 @@ function makeFrontRightSideStairs(material,startx,starty,startz){
     scene.add(mesh);
     starty+=5;
     startz+=6;
-    frontStairs.push(mesh);
+    thingToStandOn.push(mesh);
   }
   console.log(startx,starty,startz);
 }
@@ -374,7 +381,7 @@ function makeFrontLeftSideStairs(material,startx,starty,startz){
     startx-=4.2426;
     starty+=5;
     startz+=4.2426;
-    frontStairs.push(mesh);
+    thingToStandOn.push(mesh);
   }
   startx=-187.5+20.01;
   startz+=10;
@@ -385,7 +392,7 @@ function makeFrontLeftSideStairs(material,startx,starty,startz){
     scene.add(mesh);
     starty+=5;
     startz+=6;
-    frontStairs.push(mesh);
+    thingToStandOn.push(mesh);
   }
   console.log(startx,starty,startz);
 }
@@ -397,6 +404,11 @@ function makeCastle(){
   castleFloorTexture.repeat.set( .03,.03 );
   var castleFloorMaterial = new THREE.MeshPhongMaterial( {map:castleFloorTexture} );
   castleFloorMaterial.side = THREE.DoubleSide;
+  
+  // var woodBox=new THREE.BoxGeometry(100,100,100);
+  // var woodBoxMesh=new THREE.Mesh(woodBox,castleFloorMaterial);
+  // scene.add(woodBoxMesh);
+  // thingToStandOn.push(woodBoxMesh);
   
   var castleFloorGeo=new THREE.Geometry();
   castleFloorGeo.vertices.push(
@@ -444,6 +456,7 @@ function makeCastle(){
   castleFloorGeo.computeVertexNormals();
   assignUVs(castleFloorGeo);
   var castleFloorMesh=new THREE.Mesh(castleFloorGeo,castleFloorMaterial);
+  // thingToStandOn.push(castleFloorMesh); THIS IS GOOD
   scene.add(castleFloorMesh);
   
   var mazeContainerTexture = new THREE.TextureLoader().load( "stoneWall.jpg" );
@@ -464,6 +477,7 @@ function makeCastle(){
   frontRectMesh.geometry.applyMatrix( frontRectMesh.matrix );
   frontRectMesh.matrix.identity();
   makeStatic3dCubeorRect(frontRectMesh);
+  thingsToCollideWith.push(frontRectMesh);
   scene.add(frontRectMesh);
   // meshs.push(frontRectMesh);
   
@@ -481,7 +495,7 @@ function makeCastle(){
   var landingFrontStairsMaterial=new THREE.MeshBasicMaterial();
   landingFrontStairsMaterial.side=THREE.DoubleSide;
   var landingFrontStairsMesh=new THREE.Mesh(landingFrontStairsGeo,landingFrontStairsMaterial);
-  frontStairs.push(landingFrontStairsMesh);
+  thingToStandOn.push(landingFrontStairsMesh);
   scene.add(landingFrontStairsMesh);
   
   var frontStairsTexture = new THREE.TextureLoader().load( "stoneWall.jpg" );
@@ -495,61 +509,61 @@ function makeCastle(){
   var f1Stair=new THREE.BoxGeometry(100,5,6);
   f1Stair.translate(0,2.5,412.5);
   var f1StairMesh=new THREE.Mesh(f1Stair,frontStairsMaterial);
-  frontStairs.push(f1StairMesh);
+  thingToStandOn.push(f1StairMesh);
   scene.add(f1StairMesh);
   
   var f2Stair=new THREE.BoxGeometry(90,5,6);
   f2Stair.translate(0,7.5,406.5);
   var f2StairMesh=new THREE.Mesh(f2Stair,frontStairsMaterial);
-  frontStairs.push(f2StairMesh);
+  thingToStandOn.push(f2StairMesh);
   scene.add(f2StairMesh);
   
   var f3Stair=new THREE.BoxGeometry(82,5,6);
   f3Stair.translate(0,12.5,400.5);
   var f3StairMesh=new THREE.Mesh(f3Stair,frontStairsMaterial);
-  frontStairs.push(f3StairMesh);
+  thingToStandOn.push(f3StairMesh);
   scene.add(f3StairMesh);
   
   var f4Stair=new THREE.BoxGeometry(76,5,6);
   f4Stair.translate(0,17.5,394.5);
   var f4StairMesh=new THREE.Mesh(f4Stair,frontStairsMaterial);
-  frontStairs.push(f4StairMesh);
+  thingToStandOn.push(f4StairMesh);
   scene.add(f4StairMesh);
   
   var f5Stair=new THREE.BoxGeometry(72,5,6);
   f5Stair.translate(0,22.5,388.5);
   var f5StairMesh=new THREE.Mesh(f5Stair,frontStairsMaterial);
-  frontStairs.push(f5StairMesh);
+  thingToStandOn.push(f5StairMesh);
   scene.add(f5StairMesh);
   
   var f6Stair=new THREE.BoxGeometry(70,5,6);
   f6Stair.translate(0,27.5,382.5);
   var f6StairMesh=new THREE.Mesh(f6Stair,frontStairsMaterial);
-  frontStairs.push(f6StairMesh);
+  thingToStandOn.push(f6StairMesh);
   scene.add(f6StairMesh);
   
   var f7Stair=new THREE.BoxGeometry(70,5,6);
   f7Stair.translate(0,32.5,376.5);
   var f7StairMesh=new THREE.Mesh(f7Stair,frontStairsMaterial);
-  frontStairs.push(f7StairMesh);
+  thingToStandOn.push(f7StairMesh);
   scene.add(f7StairMesh);
   
   var f8Stair=new THREE.BoxGeometry(70,5,6);
   f8Stair.translate(0,37.5,370.5);
   var f8StairMesh=new THREE.Mesh(f8Stair,frontStairsMaterial);
-  frontStairs.push(f8StairMesh);
+  thingToStandOn.push(f8StairMesh);
   scene.add(f8StairMesh);
   
   var f9Stair=new THREE.BoxGeometry(70,5,6);
   f9Stair.translate(0,42.5,364.5);
   var f9StairMesh=new THREE.Mesh(f9Stair,frontStairsMaterial);
-  frontStairs.push(f9StairMesh);
+  thingToStandOn.push(f9StairMesh);
   scene.add(f9StairMesh);
   
   var f10Stair=new THREE.BoxGeometry(70,5,6);
   f10Stair.translate(0,47.5,358.5);
   var f10StairMesh=new THREE.Mesh(f10Stair,frontStairsMaterial);
-  frontStairs.push(f10StairMesh);
+  thingToStandOn.push(f10StairMesh);
   scene.add(f10StairMesh);
   
   //front right side and left side stairs
@@ -620,7 +634,8 @@ function makeCastle(){
   var frontUpstairsMaterial = new THREE.MeshBasicMaterial( { map: frontUpstairsTexture } );
   frontUpstairsMaterial.side=THREE.DoubleSide;
   var frontUpstairsMesh=new THREE.Mesh(frontUpstairsGeo,frontUpstairsMaterial);
-  scene.add(frontUpstairsMesh); 
+  scene.add(frontUpstairsMesh);
+  thingToStandOn.push(frontUpstairsMesh); 
   
   var rearRect= new THREE.BoxGeometry( 375, 1500, 375 );
   rearRect.vertices.push(
@@ -682,6 +697,7 @@ function makeCastle(){
   rearRectMesh.matrix.identity();
   makeStatic3dCubeorRect(rearRectMesh);
   scene.add(rearRectMesh);
+  thingsToCollideWith.push(rearRectMesh);
   // meshs.push(rearRectMesh);
   
   var sideRect2=new THREE.BoxGeometry( 375, 1200, 375 );
@@ -751,8 +767,9 @@ function makeCastle(){
   sideRect2Mesh.geometry.applyMatrix( sideRect2Mesh.matrix );
   sideRect2Mesh.matrix.identity();
   makeStatic3dCubeorRect(sideRect2Mesh);
-  console.log("siderect2",sideRect2);
+  // console.log("siderect2",sideRect2);
   scene.add(sideRect2Mesh);
+  thingsToCollideWith.push(sideRect2Mesh);
   // meshs.push(sideRect2Mesh);
   
 
@@ -829,6 +846,7 @@ function makeCastle(){
   sideRect1Mesh.matrix.identity();
   makeStatic3dCubeorRect(sideRect1Mesh);
   scene.add(sideRect1Mesh);
+  thingsToCollideWith.push(sideRect1Mesh);
   // meshs.push(sideRect1Mesh);
 }
 
@@ -919,9 +937,6 @@ function isInsideBuilding(playerPos){
   }
 }
 
-function ascendStairs(stairs){
-  
-}
 
 function onWindowResize() {
 
@@ -933,113 +948,92 @@ function onWindowResize() {
 }
 
 
-var count=0;
 function animate() {
   
-
   requestAnimationFrame( animate );
-
-  if ( controlsEnabled === true ) {
-    playerPos=controls.getObject().position;
-    // console.log(playerPos);
-    if (count%30==0){
-  console.log(playerPos);
-  console.log("before",controls.getObject().position);
-  // console.log("camerarotation",camera.rotation);
-  // console.log("controlsrotation",controls.getObject().rotation);
-  // console.log
-    }
   
-    // raycaster.ray.origin.copy( controls.getObject().position );
-    // raycaster.ray.origin.y -= 10;
-    // raycaster.set(camera.position,camera.position.normalize());
-    // var intersections = raycaster.intersectObjects( objects );
-    // // console.log(intersections)
-    // // console.log(raycaster.intersectObjects( objects ));
-    // var onObject = intersections.length > 0;
-    // console.log(onObject)
-    var isInside=isInsideBuilding(playerPos);
-    // console.log(isInside);
-    if(isInside){
-      // if(-50<playerPos.x && playerPos.x<50 && 408<playerPos.z && playerPos.z<416){
-        // ascendStairs(frontStairs);
-        //  var vector = controls.target.clone().subSelf( controls.object.position ).normalize();
-        // var vector=playerPos.normalize()
-        // var raycaster = new THREE.Raycaster( playerPos, vector );
-        // var intersects = raycaster.intersectObjects(frontStairs[0]);
-        raycaster.ray.origin.copy(controls.getObject().position);
-        // raycaster.ray.direction.copy(playerPos.normalize());
-        raycaster.ray.origin.y -= 10;//it is minus ten because the y control position is set up ten console.log(controls.getObject());
-        var intersections = raycaster.intersectObjects(frontStairs);
-      
-        if(intersections.length > 0){
-          // console.log(intersections);
-          controls.getObject().position.y=intersections[0].point.y+12.5;
-          if (count%25==0){
-          console.log("inside",controls.getObject().position);
-        }
-        }
-        // console.log(intersections);
-    //  }
-    }
-    if (count%25==0){
-    console.log("after",controls.getObject().position);
-  }
-    count++;
+  if ( controlsEnabled === true ) {
+    // count++;
+
+    raycaster.ray.origin.copy( controls.getObject().position );
+    raycaster.ray.origin.y -= 25; //this number needs to be five less than the numbers on 994 996 988 to eliminate the display bobbing
+    var playerPos=controls.getObject().position;
+    var isInside=isInsideBuilding(playerPos);    
+    var onObject;
+    
     var time = performance.now();
     var delta = ( time - prevTime ) / 1000;
-
-    velocity.x -= velocity.x * 5 * delta;
-    velocity.z -= velocity.z * 5 * delta;
-
-    velocity.y -= 9.8 * 100.0 * delta; // 100.0 = mass
-
+    
     direction.z = Number( moveForward ) - Number( moveBackward );
     direction.x = Number( moveLeft ) - Number( moveRight );
     direction.normalize(); // this ensures consistent movements in all directions
+    
+    
+    //COLLISION FOR JUMP ON OBJECTS LOGIC
+    // if(isInside){
+      var yintersections = raycaster.intersectObjects(thingToStandOn);
 
-    if ( moveForward || moveBackward ) velocity.z -= direction.z * 400.0 * delta;
-    if ( moveLeft || moveRight ) velocity.x -= direction.x * 400.0 * delta;
+      // console.log(velocity.y);
+      var isCollidey=yintersections.length>0;
+      // console.log(onObject);
+      velocity.y -= 9.8 * 100.0 * delta; // 100.0 = mass
+      if(isCollidey){
+        controls.getObject().position.y=yintersections[0].point.y+30;
+        velocity.y = Math.max( 0, velocity.y );
+        canJump=true;
+      }
+      if(!isCollidey){
+        canJump=false;
+        if(controls.getObject().position.y<30){
+          velocity.y=0;
+          controls.getObject().position.y=30;
+        }
+      }
+      
+      //COLLISION IN THE X AND Z DIRECTIONS 
+      
+      // var xandzAxisIntersections=raycaster.intersectObjects(thingsToCollideWith);
+      // var isCollidexandz=xandzAxisIntersections.length>0; //IT DOES REGISTER THE COLLISION IT JUST BUT ONLY WITH THE TOP ON THE OBJECT.
+      // console.log(isCollidexandz);
+      
+      //var xzCollision=checkForXZCollisions();//SHOULD RETURN A BOOL VALUE
+      
+      if(direction.x==0&&direction.z==0){
+      
+      velocity.z=0;
+      velocity.x=0;
+      
+      }
+      else{
+      if ( moveForward || moveBackward ) {
+        // if(xzCollision){
+        //   velocity.z=0;
+        // }
+        velocity.z = -(direction.z * 5000.0 * delta);
+      }
+      if ( moveLeft || moveRight ){
+        // if(xzCollision){
+        //   velocity.z=0;
+        // }
+        velocity.x = -(direction.x * 5000.0 * delta);
+      } 
+      // console.log(controls.position);
+      }
+      
+      
+      
+      controls.getObject().translateX( velocity.x * delta );
+      controls.getObject().translateY( velocity.y * delta );
+      controls.getObject().translateZ( velocity.z * delta );
 
-    // if ( onObject === true ) {
-    // 
-    //   velocity.y = Math.max( 0, velocity.y );
-    //   canJump = true;
-    // 
-    // }
 
-    controls.getObject().translateX( velocity.x * delta );
-    controls.getObject().translateY( velocity.y * delta );
-    controls.getObject().translateZ( velocity.z * delta );
-
-    if ( controls.getObject().position.y < 10 ) {
-
-      velocity.y = 0;
-      controls.getObject().position.y = 10;
-
-      canJump = true;
-
-    }
-
+    
+  
+  
+    // console.log("canJump",canJump,"onobject",onObject,"snapShotPlayerposY",snapShotPlayerposY,"controls.y",controls.getObject().position.y);
     prevTime = time;
-    // for(i=0;i<objects.length;i++){
-    //   objects[i].computeBoundingBox();
-    //   // objects[i].center();
-    //   var collision = objects[i].boundingBox.containsPoint(controls.getObject().position);
-    //   if(collision){
-    //     // console.log("collided");
-    //   }
-    //   }
-      // console.log(collision);
-    
-    // mazeMesh.geometry.computeBoundingBox();
-    // // mazeMesh.geometry.center()
-    // var collision = mazeMesh.geometry.boundingBox.containsPoint(controls.getObject().position);
-    // console.log(collision);
-    
-    // isInsideBuilding();
-
-  }
+  
+   }
 
   renderer.render( scene, camera );
 
@@ -1049,150 +1043,240 @@ function animate() {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-// var container;
-// var camera, scene, renderer;
-// var mouseX = 0, mouseY = 0;
-// var windowHalfX = window.innerWidth / 2;
-// var windowHalfY = window.innerHeight / 2;
+// THIS WORKS BUT IT HAS THAT STUPID DOUBLE JUMP PROBLEM
+// if(onObject){
+//   // console.log(intersections);
+//   // controls.getObject().position.y=intersections[0].point.y+12.5;
+//   // console.log(velocity.y);
+//   // velocity.y=Math.max(0,velocity.y);
+//   // velocity.y=intersections[0].point.y+12.5;
+//   // ground=intersections[0].point.y+25;
+//   // controls.getObject().position.y=intersections[0].point.y+12.5;
+//   // console.log(intersections[0].point.y,"controls.y",controls.getObject().position.y);
+//   controls.getObject().position.y=intersections[0].point.y+25;
+//   canJump=true;
+//   // console.log(velocity.y);
+// //   if (count%25==0){
+// //   console.log("inside",controls.getObject().position);
+// // }
+// }
+// if(!onObject){
+// canJump=false;
+// }
 // 
-// init();
-// animate();
+// if(direction.x==0&&direction.z==0){
 // 
-// function init() {
-//   container = document.createElement('div');
-//   document.body.appendChild(container);
+// velocity.z=0;
+// velocity.x=0;
 // 
-//   camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 2000);
-//   camera.position.z = 100;
+// }
+// else{
+// if ( moveForward || moveBackward ) {
+//   velocity.z = -(direction.z * 5000.0 * delta);
+// }
+// if ( moveLeft || moveRight ){
+//   velocity.x = -(direction.x * 5000.0 * delta);
+// } 
+// // console.log(controls.position);
+// }
 // 
-//   // scene
-//   scene = new THREE.Scene();
+// velocity.y -= 9.8 * 100.0 * delta; // 100.0 = mass
 // 
-//   var ambient = new THREE.AmbientLight(0xbbbbbb);
-//   scene.add(ambient);
+// if (onObject) {
+// // console.log(velocity.y);
+// velocity.y = Math.max( 0, velocity.y );
+// canJump = true;
+// // console.log("canJumpTRUE");
+// // console.log(velocity.y);
+// }
 // 
-//   var directionalLight = new THREE.DirectionalLight(0xdddddd);
-//   directionalLight.position.set(0, 0, 1);
-//   scene.add(directionalLight);
 // 
-//   // texture
-//   var manager = new THREE.LoadingManager();
-//   manager.onProgress = function(item, loaded, total) {
 // 
-//     console.log(item, loaded, total);
-// 
-//   };
-// 
-//   var texture = new THREE.Texture();
-// 
-//   var onProgress = function(xhr) {
-//     if (xhr.lengthComputable) {
-//       var percentComplete = xhr.loaded / xhr.total * 100;
-//       console.log(Math.round(percentComplete, 2) + '% downloaded');
+// controls.getObject().translateX( velocity.x * delta );
+// controls.getObject().translateY( velocity.y * delta );
+// controls.getObject().translateZ( velocity.z * delta );
+
+
+
+
+
+
+
+
+
+
+
+//THIS WORKS ITS NOT PRETTY BUT IT WORKS
+//   if(canJump===false&&jumped===true){//going up
+//     if(playerPos.y>=snapShotPlayerposY+100){
+//       jumped=false
 //     }
-//   };
-// 
-//   var onError = function(xhr) {};
-// 
-//   var loader = new THREE.ImageLoader(manager);
-//    loader.load('stoneWall.jpg', function(image) {
-// 
-//     texture.image = image;
-//     texture.needsUpdate = true;
-// 
-//   });
-// 
-//   // model
-//   // var loader = new THREE.STLLoader(manager);
-//   // 				loader.load( 'maze.stl', function ( object ) {
-//   //           object.traverse(function(child){
-//   //             if (child instanceof THREE.Mesh){
-//   //               child.material.map=texture
-//   //             }
-//   // 				} );
-//   var loader = new THREE.OBJLoader(manager);
-//   loader.load('https://s3-us-west-2.amazonaws.com/s.cdpn.io/286022/Bulbasaur.obj', function(object) {
-//   
-//     object.traverse(function(child) {
-//   
-//       if (child instanceof THREE.Mesh) {
-//   
-//         child.material.map = texture;
-//   
-//       }
-//   
-//     });
-// 
-//     // console.log(object.getAttribute('position'));
-//     console.log(object)
-//     object.scale.x = 45;
-//     object.scale.y = 45;
-//     object.scale.z = 45;
-//     object.rotation.y = 3;
-//     object.position.y = -10.5;
-//     scene.add(object);
-// 
-//   }, onProgress, onError);
-// 
-//   renderer = new THREE.WebGLRenderer({ alpha: true });
-//   renderer.setPixelRatio(window.devicePixelRatio);
-//   renderer.setSize(window.innerWidth, window.innerHeight);
-//   container.appendChild(renderer.domElement);
-// 
-//   document.addEventListener('mousemove', onDocumentMouseMove, false);
-// 
-//   window.addEventListener('resize', onWindowResize, false);
-// 
+//     else{//(playerPos.y<snapShotPlayerposY+100)
+//       playerPos.y+=5;
+//       ground=playerPos.y;
+//     }
+//     // console.log("snapshot",snapShotPlayerposY,"playerpos",playerPos);
+//   }
+//   if(playerPos.y>=snapShotPlayerposY+100){
+//     console.log(stop);
+//   }
+// if(canJump===false&&jumped===false){//coming down
+//   if(playerPos.y<=snapShotPlayerposY){
+//     canJump=true;
+//   }
+//   else{//(canJump===false&&jumped===false)
+//     playerPos.y-=5;
+//     ground=playerPos.y;
+//   }
 // }
+
+
+
+
+//   if ( controlsEnabled === true ) {
+//     var playerPos=controls.getObject().position;
+//     // console.log(playerPos);
+//   //   if (count%30==0){
+//   // console.log(playerPos);
+//   // console.log("before",controls.getObject().position);
+//   // // console.log("camerarotation",camera.rotation);
+//   // // console.log("controlsrotation",controls.getObject().rotation);
+//   // // console.log
+//   //   }
+//   
+//     // raycaster.ray.origin.copy( controls.getObject().position );
+//     // raycaster.ray.origin.y -= 10;
+//     // raycaster.set(camera.position,camera.position.normalize());
+//     // var intersections = raycaster.intersectObjects( objects );
+//     // // console.log(intersections)
+//     // // console.log(raycaster.intersectObjects( objects ));
+//     // var onObject = intersections.length > 0;
+//     // console.log(onObject)
+//     var isInside=isInsideBuilding(playerPos);
+//     raycaster.ray.origin.copy(controls.getObject().position);
+//     // raycaster.ray.direction.copy(playerPos.normalize());
+//     raycaster.ray.origin.y -= 20;
+//     // console.log(isInside);
+//     
+//   //   if (count%25==0){
+//   //   console.log("after",controls.getObject().position);
+//   // }
+//   // console.log(controls.getObject().position.y);
+//     count++;
+//   //   if (count%25==0){
+//   //   console.log("controls x,y,z",controls.getObject().position.x,controls.getObject().position.y,controls.getObject().position.z);
+//   // }
+//     var time = performance.now();
+//     var delta = ( time - prevTime ) / 1000;
+//     // if (count%25==0){
+//     // console.log("delta",delta);
+//     // }
+//   //   if (count%25==0){
+//   //   
+//   //   console.log("beforeV",velocity);
+//   // }
+//     velocity.x -= velocity.x * 5 * delta;
+//     velocity.z -= velocity.z * 5 * delta;
+//     // if(canJump&&)
+//     velocity.y -= 9.8 * 100 * delta; // 100.0 = mass
+//       // if (count%25==0){
+//       //   console.log("aftervelocity",velocity);
+//       // }
+//       // console.log("beforeD",direction);
+//       // if (count%25==0){
+//       //   console.log("moveForward,Number(moveForward)",moveForward,Number(moveForward));
+//       // }
+//     direction.z = Number( moveForward ) - Number( moveBackward );
+//     direction.x = Number( moveLeft ) - Number( moveRight );
+//     direction.normalize(); // this ensures consistent movements in all directions
+//     // if (count%25==0){
+//     //   console.log("afterdirection", direction);
+//     // }
+//     // if (count%25==0){
+//     //   console.log("direction.z * 400.0 * delta",direction.z * 400.0 * delta);
+//     // }
+//     if ( moveForward || moveBackward ) {
+//       velocity.z -= direction.z * 400.0 * delta;
+//     }
+//     if ( moveLeft || moveRight ) {
+//       velocity.x -= direction.x * 400.0 * delta;
+//     }
+//   //   if (count%25==0){
+//   //   
+//   //   console.log("updatedVelocity",velocity);
+//   // }
+//     
+//     if(isInside){
+//       // if(-50<playerPos.x && playerPos.x<50 && 408<playerPos.z && playerPos.z<416){
+//         // ascendStairs(frontStairs);
+//         //  var vector = controls.target.clone().subSelf( controls.object.position ).normalize();
+//         // var vector=playerPos.normalize()
+//         // var raycaster = new THREE.Raycaster( playerPos, vector );
+//         // var intersects = raycaster.intersectObjects(frontStairs[0]);
+//         // raycaster.ray.origin.copy(controls.getObject().position);
+//         // // raycaster.ray.direction.copy(playerPos.normalize());
+//         // raycaster.ray.origin.y -= 20;//it is minus ten because the y control position is set up ten console.log(controls.getObject());
+//         var intersections = raycaster.intersectObjects(frontStairs);
+//         // console.log(velocity.y);
+//         var onObject=intersections.length>0;
+//         if(onObject===true){
+//           // console.log(intersections);
+//           // controls.getObject().position.y=intersections[0].point.y+12.5;
+//           // console.log(velocity.y);
+//           velocity.y=Math.max(0,velocity.y);
+//           // velocity.y=intersections[0].point.y+12.5;
+//           // controls.getObject().position.y=intersections[0].point.y+12.5;
+//           canJump=true;
+//           // console.log(velocity.y);
+//         //   if (count%25==0){
+//         //   console.log("inside",controls.getObject().position);
+//         // }
+//         }
+//         // console.log(intersections);
+//     //  }
+//    }
 // 
-// function onWindowResize() {
+//     // if ( onObject === true ) {
+//     // 
+//     //   velocity.y = Math.max( 0, velocity.y );
+//     //   canJump = true;
+//     // 
+//     // }
 // 
-//   windowHalfX = window.innerWidth / 2;
-//   windowHalfY = window.innerHeight / 2;
+//     controls.getObject().translateX( velocity.x * delta );
+//     controls.getObject().translateY( velocity.y * delta );
+//     // controls.getObeject().translateY(velocity.y);
+//     controls.getObject().translateZ( velocity.z * delta );
 // 
-//   camera.aspect = window.innerWidth / window.innerHeight;
-//   camera.updateProjectionMatrix();
+//     if ( controls.getObject().position.y < 20 ) {
+//     
+//       velocity.y = 0;
+//       controls.getObject().position.y = 20;
+//     
+//       canJump = true;
+//     
+//     }
 // 
-//   renderer.setSize(window.innerWidth, window.innerHeight);
+//     prevTime = time;
+//     // for(i=0;i<objects.length;i++){
+//     //   objects[i].computeBoundingBox();
+//     //   // objects[i].center();
+//     //   var collision = objects[i].boundingBox.containsPoint(controls.getObject().position);
+//     //   if(collision){
+//     //     // console.log("collided");
+//     //   }
+//     //   }
+//       // console.log(collision);
+//     
+//     // mazeMesh.geometry.computeBoundingBox();
+//     // // mazeMesh.geometry.center()
+//     // var collision = mazeMesh.geometry.boundingBox.containsPoint(controls.getObject().position);
+//     // console.log(collision);
+//     
+//     // isInsideBuilding();
 // 
-// }
+//   }
 // 
-// function onDocumentMouseMove(event) {
-// 
-//   mouseX = (event.clientX - windowHalfX) / 2;
-//   mouseY = (event.clientY - windowHalfY) / 2;
-// 
-// }
-// 
-// //
-// 
-// function animate() {
-// 
-//   requestAnimationFrame(animate);
-//   render();
-// 
-// }
-// 
-// function render() {
-// 
-//   camera.position.x += (mouseX - camera.position.x) * .05;
-//   camera.position.y += (-mouseY - camera.position.y) * .05;
-// 
-//   camera.lookAt(scene.position);
-// 
-//   renderer.render(scene, camera);
+//   renderer.render( scene, camera );
 // 
 // }
