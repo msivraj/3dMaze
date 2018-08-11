@@ -1206,7 +1206,7 @@ function animate() {
       // }
       // if(moveLeft||moveRight){
       //   velocity.x=0;
-      // }
+      // } 
       var newpp=averagePoints(controls.getObject().position,beforeCollisionpp);
       console.log(newpp);
       // controls.getObject().position.x=beforeCollisionpp.x;
