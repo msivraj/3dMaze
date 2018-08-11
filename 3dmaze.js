@@ -5,6 +5,7 @@ var thingToStandOn=[];
 var thingsToCollideWith=[];
 
 var raycaster;
+var beforeCollisiondirection=new THREE.Vector3();
 var beforeCollisionpp=new THREE.Vector3();
 
 var blocker = document.getElementById( 'blocker' );
@@ -315,6 +316,11 @@ function init() {
   // // console.log(planeCoefficients,constantCoefficient,intersectionPoint,distance);
   // // console.log("negx",distance1,"posx",distance2,"negz",distance3,"posz",distance4);
   // console.log("posx",distance2,"posz",distance4);
+  
+  console.log(0/0);
+  console.log(1/0);
+  console.log(0/1);
+  
   window.addEventListener( 'resize', onWindowResize, false );
 
 }
@@ -481,7 +487,7 @@ function makeCastle(){
   var mazeContainerTexture = new THREE.TextureLoader().load( "stoneWall.jpg" );
   mazeContainerTexture.wrapS = mazeContainerTexture.wrapT = THREE.RepeatWrapping;
   // mazeContainerTexture.wrapS = mazeContainerTexture.wrapT = THREE.MirroredRepeatWrapping;
-  mazeContainerTexture.repeat.set( .005,.005 );
+  mazeContainerTexture.repeat.set( .007,.007 );
   var mazeContainerMaterial = new THREE.MeshPhongMaterial( {map:mazeContainerTexture} );
   // var mazeContainerMaterial = new THREE.MeshPhongMaterial( { color: 0x222222 , wireframe: true} );
   mazeContainerMaterial.side = THREE.DoubleSide;
@@ -988,7 +994,7 @@ function isCollide(playerPos){
         var posxdist=math.distance(posxIntersect,[playerPos.x,playerPos.y,playerPos.z]);
         var poszdist=math.distance(poszIntersect,[playerPos.x,playerPos.y,playerPos.z]);
         // console.log("posxdist",posxdist,"poszdist",poszdist);
-        if(posxdist<=3||poszdist<=3){
+        if(posxdist<=5||poszdist<=5){
           return true;
         }
         
@@ -1023,6 +1029,34 @@ function makeVectors(point1,point2,point3){
   return retArr;
 }
 
+function averagePoints(vector1,vector2){
+  var retArr=[];
+  var x1=vector1.x;
+  var y1=vector1.y;
+  var z1=vector1.z;
+  
+  var x2=vector2.x;
+  var y2=vector2.y;
+  var z2=vector2.z;
+  
+  if(x1>x2){
+    retArr.push((x1+x2)/2);
+  }else{
+    retArr.push((x2+x1)/2);
+  }
+  if(y1>y2){
+    retArr.push((y1+y2)/2);
+  }else{
+    retArr.push((y2+y1)/2);
+  }
+  if(z1>z2){
+    retArr.push((z1+z2)/2);
+  }else{
+    retArr.push((z2+z1)/2);
+  }
+  return retArr;
+}
+
 function onWindowResize() {
 
   camera.aspect = window.innerWidth / window.innerHeight;
@@ -1042,7 +1076,7 @@ function animate() {
     
     // var playerPos=controls.getObject().position;
     var intersections;
-    var isCollisionxz=isCollide(controls.getObject().position);
+    // var isCollisionxz=isCollide(controls.getObject().position);
     // console.log(isCollision);
     raycaster.ray.origin.copy( controls.getObject().position );
     raycaster.ray.origin.y -= 25; //this number needs to be five less than the numbers on 994 996 988 to eliminate the display bobbing
@@ -1059,9 +1093,9 @@ function animate() {
     var time = performance.now();
     var delta = ( time - prevTime ) / 1000;
     
-    direction.z = Number( moveForward ) - Number( moveBackward );
-    direction.x = Number( moveLeft ) - Number( moveRight );
-    direction.normalize(); // this ensures consistent movements in all directions
+    // direction.z = Number( moveForward ) - Number( moveBackward );
+    // direction.x = Number( moveLeft ) - Number( moveRight );
+    // direction.normalize(); // this ensures consistent movements in all directions
     
     
     //COLLISION FOR JUMP ON OBJECTS LOGIC
@@ -1094,92 +1128,144 @@ function animate() {
 
 
       //COLLISION IN THE X AND Z DIRECTIONS 
+      var isCollisionxz=isCollide(controls.getObject().position);
+      direction.z = Number( moveForward ) - Number( moveBackward );
+      direction.x = Number( moveLeft ) - Number( moveRight );
+      direction.normalize(); // this ensures consistent movements in all directions
+
+      // if(!isCollisionxz){
+      //   beforeCollisiondirection.x=direction.x;
+      //   beforeCollisiondirection.y=direction.y;
+      //   beforeCollisiondirection.z=direction.z;
+      //   console.log(direction);
+        // console.log(isCollisionxz);
+        // console.log("before collision directional values","MF",moveForward,"MB",moveBackward,"ML",moveLeft,"MR",moveRight);
+        
+        //This is the line that will allow for me to get the directional vector from the camera
+        // console.log(camera.getWorldDirection(new THREE.Vector3()));
+
+        if(direction.x==0&&direction.z==0){//works if commented out but im not sure if ill need these lines so dont delete
+        // console.log("line1098");
+        velocity.z=0;
+        velocity.x=0;
+        
+        }
+      // }
       
-      
-      if(direction.x==0&&direction.z==0){
-      console.log("line1098");
-      velocity.z=0;
-      velocity.x=0;
-      
-      }
       else{
-        
-        // raycaster.ray.direction.copy(new THREE.Vector3(0,0,-1));//negzray
-        // intersections=raycaster.intersectObjects(thingsToCollideWith);
-        // var isnegzCollision=intersections.length>0;
-        // // scene.add(new THREE.ArrowHelper(raycaster.ray.direction,raycaster.ray.origin,100,0xff0021));
-
-        
-        // raycaster.ray.direction.copy(new THREE.Vector3(0,0,1));//poszray
-        // intersections=raycaster.intersectObjects(thingsToCollideWith);
-        // var isposzCollision=intersections.length>0;
-        // scene.add(new THREE.ArrowHelper(raycaster.ray.direction,raycaster.ray.origin,300,0xff0300));
-        // console.log("negzCollision",isnegzCollision,"poszCollision",isposzCollision);
-      
-      if ( moveForward || moveBackward ) {//forward is -z backward is +z
-        // if(velocity.z==0){
-        //   isCollisionxz=false;
+        // if(beforeCollisiondirection.z>0){//moving forward
+        //   if(direction.z>0){
+        //     direction.z=0;
+        //   }
         // }
-        if(isCollisionxz){
-          // velocity.z=-velocity.z*.5;//1.5 if not want to deal with velocity being 0 and still being in collision
-          velocity.z=0;
-          // console.log("actual",controls.getObject().position,"before",beforeCollisionpp);
-          // controls.getObject().position=beforeCollisionpp;
-          controls.getObject().position.x=beforeCollisionpp.x;
-          controls.getObject().position.y=beforeCollisionpp.y;
-          controls.getObject().position.z=beforeCollisionpp.z;
-          // console.log("if",velocity.z,"before",beforeCollisionpp,"actual",controls.getObject().position);
-        }else{
-          beforeCollisionpp.x=controls.getObject().position.x;
-          beforeCollisionpp.y=controls.getObject().position.y;
-          beforeCollisionpp.z=controls.getObject().position.z;
-          // console.log("else",beforeCollisionpp);
-          velocity.z = -(direction.z * 4000.0 * delta);
-          //before collision not change
-        }
-        // velocity.z = -(direction.z * 5000.0 * delta);
-      }
-      // raycaster.ray.direction.copy(new THREE.Vector3(-1,0,0));//negxray
-      // intersections=raycaster.intersectObjects(thingsToCollideWith);
-      // var isnegxCollision=intersections.length>0;
-      // scene.add(new THREE.ArrowHelper(raycaster.ray.direction,raycaster.ray.origin,300,0xff0000));
-      
-      
-      // raycaster.ray.direction.copy(new THREE.Vector3(1,0,0));//posxray
-      // intersections=raycaster.intersectObjects(thingsToCollideWith);
-      // var isposxCollision=intersections.length>0;
-      // scene.add(new THREE.ArrowHelper(raycaster.ray.direction,raycaster.ray.origin,300,0xff0000));
-
-      
-      if ( moveLeft || moveRight ){//left is -x right is +x
-        // if(velocity.x==0){
-        //   isCollisionxz=false;
+        // if(beforeCollisiondirection.z<0){//moving backward
+        //   if(direction.z<0){
+        //     direction.z=0;
+        //   }
         // }
-        if(isCollisionxz){
-          // velocity.x=-velocity.x*.5;
-          velocity.x=0;
-          controls.getObject().position.x=beforeCollisionpp.x;
-          controls.getObject().position.y=beforeCollisionpp.y;
-          controls.getObject().position.z=beforeCollisionpp.z;
-        }else{
-          beforeCollisionpp.x=controls.getObject().position.x;
-          beforeCollisionpp.y=controls.getObject().position.y;
-          beforeCollisionpp.z=controls.getObject().position.z;
-          // beforeCollisionpp=playerPos;
-          velocity.x = -(direction.x * 4000.0 * delta);
-        }
+        // if(beforeCollisiondirection.x>0){//moving left
+        //   if(direction.x>0){
+        //     direction.x=0;
+        //   }
+        // }
+        // if(beforeCollisiondirection.x<0){//moving right
+        //   if(direction.x<0){
+        //     direction.x=0;
+        //   }
+        // }
         
-      } 
-      // console.log(controls.getObject().position);
+        
+      // if(beforeCollisiondirection.x>direction.x){
+      //   var x=beforeCollisiondirection.x/direction.x;
+      // }else{
+      //   var x=direction.x/beforeCollisiondirection.x;
+      // }
+      // 
+      // if(beforeCollisiondirection.z>direction.z){
+      //   var z=beforeCollisiondirection.z/direction.z;
+      // }else{
+      //   var z=direction.z/beforeCollisiondirection.z;
+      // }
+      // console.log(x,z);
+      
+      // if(beforeCollisiondirection.x==direction.x&&beforeCollisiondirection.z==direction.z){
+      //   direction.x=0;
+      //   // direction.y=0;
+      //   direction.z=0;
+      // }
+      
+      // if(x==z){
+      //   direction.x=0;
+      //   direction.y=0;
+      //   direction.z=0;
+      // }
+    
+    if(isCollisionxz){
+      // if(moveForward||moveBackward){
+      //   velocity.z=0;
+      // }
+      // if(moveLeft||moveRight){
+      //   velocity.x=0;
+      // }
+      var newpp=averagePoints(controls.getObject().position,beforeCollisionpp);
+      console.log(newpp);
+      // controls.getObject().position.x=beforeCollisionpp.x;
+      // controls.getObject().position.y=beforeCollisionpp.y;
+      // controls.getObject().position.z=beforeCollisionpp.z;
+      controls.getObject().position.x=newpp[0];
+      controls.getObject().position.y=newpp[1];
+      controls.getObject().position.z=newpp[2];
+    }else{
+      beforeCollisionpp.x=controls.getObject().position.x;
+      beforeCollisionpp.y=controls.getObject().position.y;
+      beforeCollisionpp.z=controls.getObject().position.z;
+      velocity.z = -(direction.z * 4000.0 * delta);
+      velocity.x = -(direction.x * 4000.0 * delta);
+    }
+    
+    
+    
+      //Make a way to get rid of the jittering
+      // if ( moveForward || moveBackward ) {//forward is -z backward is +z
+      //   if(isCollisionxz){
+      //     velocity.z=0;
+      //     // console.log(controls.getObject().position);
+      //     controls.getObject().position.x=beforeCollisionpp.x;
+      //     controls.getObject().position.y=beforeCollisionpp.y;
+      //     controls.getObject().position.z=beforeCollisionpp.z;
+      //     // console.log(beforeCollisionpp);
+      //   }else{
+      //     beforeCollisionpp.x=controls.getObject().position.x;
+      //     beforeCollisionpp.y=controls.getObject().position.y;
+      //     beforeCollisionpp.z=controls.getObject().position.z;
+      //     velocity.z = -(direction.z * 4000.0 * delta);
+      //   }
+      // }
+      // 
+      // if ( moveLeft || moveRight ){//left is -x right is +x
+      //   
+      //   if(isCollisionxz){
+      //     velocity.x=0;
+      //     controls.getObject().position.x=beforeCollisionpp.x;
+      //     controls.getObject().position.y=beforeCollisionpp.y;
+      //     controls.getObject().position.z=beforeCollisionpp.z;
+      //   }else{
+      //     beforeCollisionpp.x=controls.getObject().position.x;
+      //     beforeCollisionpp.y=controls.getObject().position.y;
+      //     beforeCollisionpp.z=controls.getObject().position.z;
+      //     velocity.x = -(direction.x * 4000.0 * delta);
+      //   }
+      //   
+      // } 
       }
-//beforeCollisionpp not change      
+      // velocity.z = -(direction.z * 4000.0 * delta);
+      // velocity.x = -(direction.x * 4000.0 * delta);
       
       // if(!isCollisionxz){
         controls.getObject().translateX( velocity.x * delta );
         controls.getObject().translateY( velocity.y * delta );
         controls.getObject().translateZ( velocity.z * delta );
       // }
-      // console.log("1166",beforeCollisionpp);
 
 
 
