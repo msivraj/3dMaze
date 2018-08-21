@@ -316,10 +316,17 @@ function init() {
   // // console.log(planeCoefficients,constantCoefficient,intersectionPoint,distance);
   // // console.log("negx",distance1,"posx",distance2,"negz",distance3,"posz",distance4);
   // console.log("posx",distance2,"posz",distance4);
+  console.log(thingsToCollideWith);
   
   console.log(0/0);
   console.log(1/0);
   console.log(0/1);
+  console.log(Number.EPSILON);
+  var arr=[1,2,3,4];
+  // arr.pop();
+  // console.log(arr);
+  
+  console.log(arr.slice(0,-1))
   
   window.addEventListener( 'resize', onWindowResize, false );
 
@@ -878,6 +885,8 @@ function makeCastle(){
   scene.add(sideRect1Mesh);
   thingsToCollideWith.push(sideRect1Mesh);
   // meshs.push(sideRect1Mesh);
+  // console.log(rearRectMesh);
+
 }
 
 // function addObjstoScene(){
@@ -970,55 +979,195 @@ function isInsideBuilding(playerPos){
 
 function isCollide(playerPos){
     for(var i=0;i<thingsToCollideWith.length;i++){
-      // var geometry=thingsToCollideWith[i].geometry;
-      // console.log("i",i);
       var faces=thingsToCollideWith[i].geometry.faces;
       var vertices=thingsToCollideWith[i].geometry.vertices;
+      
       for(var j=0;j<faces.length;j++){
-        // console.log(faces.length,faces[j],j);
         var point1=vertices[faces[j].a];
         var point2=vertices[faces[j].b];
         var point3=vertices[faces[j].c];
-        var vectors=makeVectors(point1,point2,point3);
-        //find vectors first
-        // var planeCoefficients=math.cross([-2,1,0],[4,0,1]);//these need to be the vectors found from the points
-        var planeCoefficients=math.cross(vectors[0],vectors[1]);//these need to be the vectors found from the points
+        // var edgeVectors=makeVectors(point1,point2,point3);
+        
+        //PLANECOEFFICIENTS IS ALSO THE NORMAL VECTOR FOR THE PLANE THE TRIANGLE EXISTS IN
+        var planeCoefficients=math.cross(makeVector(point1,point2),makeVector(point1,point3));//these need to be the vectors found from the points
+        
+        // TESTS TO SEE IF RAY IS PARALLEL TO THE COLLISION WALL
+        var dirxRay=[playerPos.x+5-playerPos.x,playerPos.y-playerPos.y,playerPos.z-playerPos.z]
+        var dirzRay=[playerPos.x-playerPos.x,playerPos.y-playerPos.y,playerPos.z+5-playerPos.z]
+        var parallelz=Math.abs(math.dot(planeCoefficients,dirzRay));
+        var parallelx=Math.abs(math.dot(planeCoefficients,dirxRay));
+        
+        
+        // THIS THE NUMBER AFTER TAKING CARE OF ALL THE CONSTANT OPPERATIONS AND MOVING IT TO THE OTHER SIDE OF THE EQUATION FOR THE PLANE
         var constantCoefficient=-(planeCoefficients[0]*point1.x)-(planeCoefficients[1]*point1.y)-(planeCoefficients[2]*point1.z)
         planeCoefficients[3]=-constantCoefficient;
-        // console.log(planeCoefficients[3]);
-        // var intersectionPoint=math.intersect([playerPos.x,playerPos.y,playerPos.z],[100,66,72],planeCoefficients);//negxray
         
+                
         var posxIntersect=math.intersect([playerPos.x,playerPos.y,playerPos.z],[playerPos.x+5,playerPos.y,playerPos.z],planeCoefficients);
         var poszIntersect=math.intersect([playerPos.x,playerPos.y,playerPos.z],[playerPos.x,playerPos.y,playerPos.z+5],planeCoefficients);
         
-        var posxdist=math.distance(posxIntersect,[playerPos.x,playerPos.y,playerPos.z]);
-        var poszdist=math.distance(poszIntersect,[playerPos.x,playerPos.y,playerPos.z]);
+        // var posxdist=math.distance(posxIntersect,[playerPos.x,playerPos.y,playerPos.z]);
+        // var poszdist=math.distance(poszIntersect,[playerPos.x,playerPos.y,playerPos.z]);
         // console.log("posxdist",posxdist,"poszdist",poszdist);
-        if(posxdist<=5||poszdist<=5){
-          return true;
+        
+        // if(poszdist<=5||posxdist<=5){
+        //   return true;
+        // }
+        
+        //if point is inside triangular face then check its distance
+        
+        // if(parallelx<Number.EPSILON){
+          if(isInsideTri(point1,point2,point3,poszIntersect,planeCoefficients.slice(0,-1))){//point1,point2,point3,intersectionPoint,vectNorm
+          var poszdist=math.distance(poszIntersect,[playerPos.x,playerPos.y,playerPos.z]);
+          
+          if(poszdist<=5){
+            // console.log("zdist",poszdist);
+            return true;
+          }
+          
         }
+        // }
+        // if(parallelz<Number.EPSILON){
+          if(isInsideTri(point1,point2,point3,posxIntersect,planeCoefficients.slice(0,-1))){
+          var posxdist=math.distance(posxIntersect,[playerPos.x,playerPos.y,playerPos.z]);
+          // console.log("xdist",posxdist);
+          if(posxdist<=5){
+            return true;
+          }
+          
+        }
+        // }
         
-        // var distance=math.distance(intersectionPoint,[105,66,72]);
         
-        // console.log(planeCoefficients,constantCoefficient,intersectionPoint,distance);
+        // if(posxdist<=5){
+        //   // console.log("constantCoefficient",constantCoefficient,"planeCoefficients",planeCoefficients,"vectors",vectors,"i",i,"j",j,point1,point2,point3,"x","posx",posxIntersect,"pp",playerPos);
+        //   // console.log("x",isParallelx);
+        //   // console.log("z",parallelz);
+        //   if(parallelz<Number.EPSILON){
+        //       console.log("collidingwithx");
+        //     }
+        //   return true;
+        // }
+        // if(poszdist<=5){
+        //   // console.log("z",isParallelz);
+        //   // console.log("x",parallelx);
+        //   if(parallelx<Number.EPSILON){
+        //       console.log("collidingwithz");
+        //     }
+        //   return true;
+        // }
+        
       }
       
     }
 }
 
-function makeVectors(point1,point2,point3){
+function isInsideTri1(point1,point2,point3,playerPos){
+  var edge1=makeVector(point1,point2);
+  var arrowHelper = new THREE.ArrowHelper( new THREE.Vector3(edge1[0],edge1[1],edge1[2]).normalize(), point1, 100, 0x0061ff );//blue
+  scene.add( arrowHelper );
+  
+  var edge2=makeVector(point1,point3);
+  // var arrowHelper = new THREE.ArrowHelper( new THREE.Vector3(edge2[0],edge2[1],edge2[2]).normalize(), point1, 100, 0x04ff00 );//green
+  // scene.add( arrowHelper );
+  
+  var edge3=makeVector(point2,point3);
+  var arrowHelper = new THREE.ArrowHelper( new THREE.Vector3(edge3[0],edge3[1],edge3[2]).normalize(), point2, 100, 0xed1520 );//red
+  scene.add( arrowHelper );
+  
+  var edge4=makeVector(point2,point1);
+  // var arrowHelper = new THREE.ArrowHelper( new THREE.Vector3(edge4[0],edge4[1],edge4[2]).normalize(), point2, 100, 0xed1520 );//red
+  // scene.add( arrowHelper );
+  
+  var edge5=makeVector(point3,point2);
+  // var arrowHelper = new THREE.ArrowHelper( new THREE.Vector3(edge5[0],edge5[1],edge5[2]).normalize(), point3, 700, 0xed1520 );//red
+  // scene.add( arrowHelper );
+  
+  var c1=makeVector(point1,playerPos);//if need be switch the order in which these points and entered into the method
+  // var arrowHelper = new THREE.ArrowHelper( new THREE.Vector3(c1[0],c1[1],c1[2]).normalize(), point1, 100, 0x00efeb );//teal
+  // scene.add( arrowHelper );
+  
+  var c2=makeVector(point2,playerPos);
+  // var arrowHelper = new THREE.ArrowHelper( new THREE.Vector3(c2[0],c2[1],c2[2]).normalize(), point2, 100, 0xff5f02 );//orange
+  // scene.add( arrowHelper );
+  
+  var c3=makeVector(point3,playerPos);
+  // var arrowHelper = new THREE.ArrowHelper( new THREE.Vector3(c3[0],c3[1],c3[2]).normalize(), point3, 700, 0xf6ff00 );//yellow
+  // scene.add( arrowHelper );
+  
+  var c1len=Math.sqrt(Math.pow(c1[0],2)+Math.pow(c1[1],2)+Math.pow(c1[2],2));
+  var c2len=Math.sqrt(Math.pow(c2[0],2)+Math.pow(c2[1],2)+Math.pow(c2[2],2));
+  var c3len=Math.sqrt(Math.pow(c3[0],2)+Math.pow(c3[1],2)+Math.pow(c3[2],2));
+  
+  var edge1len=Math.sqrt(Math.pow(edge1[0],2)+Math.pow(edge1[1],2)+Math.pow(edge1[2],2));
+  var edge2len=Math.sqrt(Math.pow(edge2[0],2)+Math.pow(edge2[1],2)+Math.pow(edge2[2],2));
+  var edge3len=Math.sqrt(Math.pow(edge3[0],2)+Math.pow(edge3[1],2)+Math.pow(edge3[2],2));
+  var edge4len=Math.sqrt(Math.pow(edge4[0],2)+Math.pow(edge4[1],2)+Math.pow(edge4[2],2)); 
+  var edge5len=Math.sqrt(Math.pow(edge5[0],2)+Math.pow(edge5[1],2)+Math.pow(edge5[2],2)); 
+  
+  var dot=math.dot(edge1,c1);
+  var dot1=math.dot(edge3,c2);
+  var dot2=math.dot(edge5,c3);
+  var dot3=math.dot(edge1,edge2);
+  var dot4=math.dot(edge3,edge4);
+  // var dot5=math.dot(edge2,edge3);
+  // var dot6=math.dot(edge3,edge2);
+  var dot7=math.dot(edge1,edge3);
+  
+  var thetaEdge1C1=Math.acos( (dot) / (edge1len*c1len) )*180/Math.PI;
+  var thetaEdge3C2=Math.acos( (dot1) / (edge3len*c2len) )*180/Math.PI;
+  var thetaEdge5C3=Math.acos( (dot2) / (edge5len*c3len) )*180/Math.PI;
+  
+  var thetaVert1=Math.acos((dot3)/(edge1len*edge2len))*180/Math.PI;
+  var thetaVert2=Math.acos((dot4)/(edge3len*edge4len))*180/Math.PI;
+  var thetaVert3=180-(thetaVert1+thetaVert2);
+  // if(thetaVert1>thetaVert2){
+  //   thetaVert3=thetaVert1-thetaVert2;
+  // }else{
+  //   thetaVert3=thetaVert2-thetaVert1;
+  // }
+  
+  // console.log(thetaVert1,thetaVert2,thetaVert3,thetaEdge1C1,thetaEdge3C2,thetaEdge5C3);
+  
+  
+  // console.log(thetaEdge1C1,thetaEdge2C2,thetaEdge3C3,thetaEdge1Edge2,thetaEdge1Edge3);
+  var thetaE1E3=Math.acos( (dot7) / (edge1len*edge3len) )*180/Math.PI;
+  console.log(thetaE1E3);
+  
+}
+
+function isInsideTri(point1,point2,point3,intersectionPoint,vectNorm){
+  var vectIntersection=new THREE.Vector3(intersectionPoint[0],intersectionPoint[1],intersectionPoint[2]);
+  var edge1=makeVector(point1,point2);
+  var edge2=makeVector(point2,point3);
+  var edge3=makeVector(point3,point1);
+  var c1=makeVector(point1,vectIntersection);//if need be switch the order in which these points and entered into the method
+  var c2=makeVector(point2,vectIntersection);
+  var c3=makeVector(point3,vectIntersection);
+  
+  if(math.dot(vectNorm,math.cross(edge1,c1))>0&& 
+  math.dot(vectNorm,math.cross(edge2,c2))>0&&
+  math.dot(vectNorm,math.cross(edge3,c3))>0){
+    return true;
+  }
+  
+}
+
+function makeVector(point1,point2){//point1,point2,point3
   var retArr=[];
   var vect1to2=[];
   vect1to2[0]=point2.x-point1.x;
   vect1to2[1]=point2.y-point1.y;
   vect1to2[2]=point2.z-point1.z;
+  // retArr.push(vect1to2);
   
-  var vect1to3=[];
-  vect1to3[0]=point3.x-point1.x;
-  vect1to3[1]=point3.y-point1.y;
-  vect1to3[2]=point3.z-point1.z;
-  retArr.push(vect1to2,vect1to3);
-  
+  // var vect1to3=[];
+  // vect1to3[0]=point3.x-point1.x;
+  // vect1to3[1]=point3.y-point1.y;
+  // vect1to3[2]=point3.z-point1.z;
+  // // console.log(retArr);
+  // retArr.push(vect1to2,vect1to3);
+  // 
   // var vect2to3=[];
   // vect2to3[0]=point3.x-point2.x;
   // vect2to3[1]=point3.y-point2.y;
@@ -1026,7 +1175,7 @@ function makeVectors(point1,point2,point3){
   // // console.log(retArr);
   // retArr.push(vect1to2,vect2to3);
   
-  return retArr;
+  return vect1to2;
 }
 
 function averagePoints(vector1,vector2){
@@ -1137,22 +1286,28 @@ function animate() {
       //   beforeCollisiondirection.x=direction.x;
       //   beforeCollisiondirection.y=direction.y;
       //   beforeCollisiondirection.z=direction.z;
-      //   console.log(direction);
-        // console.log(isCollisionxz);
-        // console.log("before collision directional values","MF",moveForward,"MB",moveBackward,"ML",moveLeft,"MR",moveRight);
-        
-        //This is the line that will allow for me to get the directional vector from the camera
-        // console.log(camera.getWorldDirection(new THREE.Vector3()));
-
-        if(direction.x==0&&direction.z==0){//works if commented out but im not sure if ill need these lines so dont delete
-        // console.log("line1098");
-        velocity.z=0;
-        velocity.x=0;
-        
-        }
+      //   
+      //   // velocity.z = -(direction.z * 4000.0 * delta);
+      //   // velocity.x = -(direction.x * 4000.0 * delta);
+      //   // console.log(direction);
+      //   // console.log(isCollisionxz);
+      //   // console.log("before collision directional values","MF",moveForward,"MB",moveBackward,"ML",moveLeft,"MR",moveRight);
+      //   // 
+      //   // This is the line that will allow for me to get the directional vector from the camera
+      //   // console.log(camera.getWorldDirection(new THREE.Vector3()));
+      // 
+      //   
       // }
       
-      else{
+      if(direction.x==0&&direction.z==0){//works if commented out but im not sure if ill need these lines so dont delete
+      // console.log("line1098");
+      velocity.z=0;
+      velocity.x=0;
+      
+      }
+      
+      // else{
+        // console.log(isCollisionxz);
         // if(beforeCollisiondirection.z>0){//moving forward
         //   if(direction.z>0){
         //     direction.z=0;
@@ -1173,7 +1328,7 @@ function animate() {
         //     direction.x=0;
         //   }
         // }
-        
+        // 
         
       // if(beforeCollisiondirection.x>direction.x){
       //   var x=beforeCollisiondirection.x/direction.x;
@@ -1200,15 +1355,12 @@ function animate() {
       //   direction.z=0;
       // }
     
+    //THIS WORKS AND DOES NOT JITTER
     if(isCollisionxz){
-      // if(moveForward||moveBackward){
-      //   velocity.z=0;
-      // }
-      // if(moveLeft||moveRight){
-      //   velocity.x=0;
-      // } 
       var newpp=averagePoints(controls.getObject().position,beforeCollisionpp);
-      console.log(newpp);
+      // var averageVect=new THREE.Vector3(newpp[0],newpp[1],newpp[2]);
+      // var newerpp=averagePoints(controls.getObject().position,averageVect);
+      // console.log(newpp);
       // controls.getObject().position.x=beforeCollisionpp.x;
       // controls.getObject().position.y=beforeCollisionpp.y;
       // controls.getObject().position.z=beforeCollisionpp.z;
@@ -1219,47 +1371,12 @@ function animate() {
       beforeCollisionpp.x=controls.getObject().position.x;
       beforeCollisionpp.y=controls.getObject().position.y;
       beforeCollisionpp.z=controls.getObject().position.z;
-      velocity.z = -(direction.z * 4000.0 * delta);
-      velocity.x = -(direction.x * 4000.0 * delta);
-    }
-    
-    
-    
-      //Make a way to get rid of the jittering
-      // if ( moveForward || moveBackward ) {//forward is -z backward is +z
-      //   if(isCollisionxz){
-      //     velocity.z=0;
-      //     // console.log(controls.getObject().position);
-      //     controls.getObject().position.x=beforeCollisionpp.x;
-      //     controls.getObject().position.y=beforeCollisionpp.y;
-      //     controls.getObject().position.z=beforeCollisionpp.z;
-      //     // console.log(beforeCollisionpp);
-      //   }else{
-      //     beforeCollisionpp.x=controls.getObject().position.x;
-      //     beforeCollisionpp.y=controls.getObject().position.y;
-      //     beforeCollisionpp.z=controls.getObject().position.z;
-      //     velocity.z = -(direction.z * 4000.0 * delta);
-      //   }
-      // }
-      // 
-      // if ( moveLeft || moveRight ){//left is -x right is +x
-      //   
-      //   if(isCollisionxz){
-      //     velocity.x=0;
-      //     controls.getObject().position.x=beforeCollisionpp.x;
-      //     controls.getObject().position.y=beforeCollisionpp.y;
-      //     controls.getObject().position.z=beforeCollisionpp.z;
-      //   }else{
-      //     beforeCollisionpp.x=controls.getObject().position.x;
-      //     beforeCollisionpp.y=controls.getObject().position.y;
-      //     beforeCollisionpp.z=controls.getObject().position.z;
-      //     velocity.x = -(direction.x * 4000.0 * delta);
-      //   }
-      //   
-      // } 
-      }
       // velocity.z = -(direction.z * 4000.0 * delta);
       // velocity.x = -(direction.x * 4000.0 * delta);
+    }
+      // }
+      velocity.z = -(direction.z * 4000.0 * delta);
+      velocity.x = -(direction.x * 4000.0 * delta);
       
       // if(!isCollisionxz){
         controls.getObject().translateX( velocity.x * delta );
